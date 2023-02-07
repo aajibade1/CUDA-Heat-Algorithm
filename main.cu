@@ -137,6 +137,11 @@ int main(int argc, char **argv)
     cudaMalloc((void**)&d_gen, size);
     cudaMalloc((void**)&d_hold, size);
 
+    //start timing event
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
     // Transfer data from host to device memory
     cudaMemcpy(d_gen, gen, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_hold, hold, size, cudaMemcpyHostToDevice);
@@ -153,7 +158,7 @@ int main(int argc, char **argv)
 
     //cout << "block size: " << ThreadsPerBlock <<  endl;
 
-
+    cudaEventRecord(start); //start the time
 
     //run kernel functions iteratively
     for (auto iteration = 0; iteration < I; iteration++)
@@ -161,6 +166,12 @@ int main(int argc, char **argv)
         transferHeat<<<dimGrid, dimBlock>>>(d_gen, d_hold, plateSize);
         copyOver<<<dimGrid, dimBlock>>>(d_gen, d_hold, plateSize);
     }
+    cudaEventRecord(stop); // stop time
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    cout << setprecision(2) << fixed << milliseconds << endl;
 
     // Transfer data back to host memory
     cudaMemcpy(hold, d_hold, size, cudaMemcpyDeviceToHost);
